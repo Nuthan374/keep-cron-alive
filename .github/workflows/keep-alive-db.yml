@@ -1,0 +1,34 @@
+
+name: Daily Database Keep Alive
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch: 
+
+jobs:
+  database-keepalive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Install MongoDB Shell
+      run: |
+        wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-mongosh
+      continue-on-error: true
+      
+    - name: Ping Neon PostgreSQL
+      run: |
+        psql '${{ secrets.NEON_CONNECTION_STRING }}' -c "SELECT 1;"
+      continue-on-error: true
+      
+    - name: Ping MongoDB Atlas
+      run: |
+        mongosh "${{ secrets.MONGO_CONNECTION_STRING }}" --eval "db.runCommand({ping: 1})" --quiet
+      continue-on-error: true
+      
+    - name: Log Status
+      run: |
+        echo "Daily database keepalive completed at $(date)"
