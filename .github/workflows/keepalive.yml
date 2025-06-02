@@ -1,0 +1,64 @@
+name: Keep Services Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Ping Realtime Chat Client (React)
+      run: |
+        curl -s "${{ secrets.REALTIME_CHAT_CLIENT_URL }}"
+      continue-on-error: true
+      
+    - name: Ping Realtime Chat Server (Node)
+      run: |
+        curl -s "${{ secrets.REALTIME_CHAT_SERVER_URL }}"
+      continue-on-error: true
+      
+    - name: Ping Workforce Client (React)
+      run: |
+        curl -s "${{ secrets.WORKFORCE_CLIENT_URL }}"
+      continue-on-error: true
+      
+    - name: Ping Loan Risk Analysis Server (Spring)
+      run: |
+        curl -s "${{ secrets.LOAN_RISK_ANALYSIS_URL }}"
+      continue-on-error: true
+      
+    - name: Ping Book Management Server (Spring)
+      run: |
+        curl -s "${{ secrets.BOOK_MANAGEMENT_URL }}"
+      continue-on-error: true
+      
+    - name: Ping Employee Management Server (Spring)
+      run: |
+        curl -s "${{ secrets.EMPLOYEE_MANAGEMENT_URL }}"
+      continue-on-error: true
+      
+    - name: Install MongoDB Shell
+      run: |
+        wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-mongosh
+      continue-on-error: true
+      
+    - name: Ping Neon PostgreSQL
+      run: |
+        psql '${{ secrets.NEON_CONNECTION_STRING }}' -c "SELECT 1;"
+      continue-on-error: true
+      
+    - name: Ping MongoDB Atlas
+      run: |
+        mongosh "${{ secrets.MONGO_CONNECTION_STRING }}" --eval "db.runCommand({ping: 1})" --quiet
+      continue-on-error: true
+      
+    - name: Log Status
+      run: |
+        echo "Keepalive completed at $(date)"
